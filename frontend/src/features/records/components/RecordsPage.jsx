@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { RecordsCards } from "./RecordsCards";
+import { CreateRecordDialog } from "./CreateRecordDialog";
 import { RecordsFilters } from "./RecordsFilters";
 import {
   RecordsEmptyState,
@@ -77,13 +78,22 @@ export function RecordsPage() {
     setRetrySeed((value) => value + 1);
   }
 
+  function handleRecordCreated() {
+    setRetrySeed((value) => value + 1);
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Clinical Records</h1>
-        <p className="text-sm text-muted-foreground">
-          Browse patient records and filter by status, department, or search terms.
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Clinical Records</h1>
+            <p className="text-sm text-muted-foreground">
+              Browse patient records and filter by status, department, or search terms.
+            </p>
+          </div>
+          <CreateRecordDialog onRecordCreated={handleRecordCreated} />
+        </div>
       </header>
 
       <RecordsFilters

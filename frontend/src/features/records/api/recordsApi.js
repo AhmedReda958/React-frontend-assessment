@@ -89,3 +89,25 @@ export async function fetchDepartments(signal) {
     throw new Error(parsedError);
   }
 }
+
+export async function createRecord(recordPayload) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/records`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(recordPayload),
+    });
+
+    return await parseJsonResponse(response, "Unable to create clinical record.");
+  } catch (error) {
+    const parsedError = parseApiError(error, "Unable to create clinical record.");
+
+    if (parsedError === null) {
+      throw new Error("Request was cancelled.");
+    }
+
+    throw new Error(parsedError);
+  }
+}
