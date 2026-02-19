@@ -9,6 +9,7 @@ import {
 } from "./RecordsStates";
 import { RecordsTable } from "./RecordsTable";
 import { useRecordsData } from "../hooks/useRecordsData";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import {
   createUrlSearchFromFilters,
   getDefaultFilters,
@@ -18,10 +19,20 @@ import {
 export function RecordsPage() {
   const [filters, setFilters] = useState(() => readFiltersFromUrl(window.location.search));
   const [retrySeed, setRetrySeed] = useState(0);
-  const data = useRecordsData({ ...filters, retrySeed });
+  const debouncedSearch = useDebouncedValue(filters.search, 350);
+
+  const appliedFilters = useMemo(
+    () => ({
+      ...filters,
+      search: debouncedSearch,
+    }),
+    [filters, debouncedSearch]
+  );
+
+  const data = useRecordsData({ ...appliedFilters, retrySeed });
 
   useEffect(() => {
-    const nextSearch = createUrlSearchFromFilters(filters);
+    const nextSearch = createUrlSearchFromFilters(appliedFilters);
     const currentSearch = window.location.search.replace("?", "");
 
     if (nextSearch === currentSearch) {
@@ -32,7 +43,7 @@ export function RecordsPage() {
       nextSearch ? `?${nextSearch}` : ""
     }${window.location.hash}`;
     window.history.replaceState(null, "", nextUrl);
-  }, [filters]);
+  }, [appliedFilters]);
 
   useEffect(() => {
     function handlePopState() {

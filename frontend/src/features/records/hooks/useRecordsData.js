@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchDepartments, fetchRecords } from "../api/recordsApi";
-import { useDebouncedValue } from "./useDebouncedValue";
 
 const DEFAULT_FILTERS = {
   search: "",
@@ -16,17 +15,15 @@ export function useRecordsData({ search, status, department, retrySeed = 0 }) {
   const [error, setError] = useState("");
   const hasLoadedRef = useRef(false);
 
-  const debouncedSearch = useDebouncedValue(search || "", 350);
-
   const requestFilters = useMemo(
     () => ({
       ...DEFAULT_FILTERS,
-      search: debouncedSearch,
+      search: search || DEFAULT_FILTERS.search,
       status: status || DEFAULT_FILTERS.status,
       department: department || DEFAULT_FILTERS.department,
       retrySeed,
     }),
-    [debouncedSearch, status, department, retrySeed]
+    [search, status, department, retrySeed]
   );
 
   useEffect(() => {
