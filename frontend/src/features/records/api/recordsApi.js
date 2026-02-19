@@ -21,6 +21,22 @@ function buildQueryString(filters) {
     params.set("department", filters.department);
   }
 
+  if (filters.page) {
+    params.set("page", String(filters.page));
+  }
+
+  if (filters.limit) {
+    params.set("limit", String(filters.limit));
+  }
+
+  if (filters.sortBy) {
+    params.set("sortBy", filters.sortBy);
+  }
+
+  if (filters.sortOrder) {
+    params.set("sortOrder", filters.sortOrder);
+  }
+
   return params.toString();
 }
 
@@ -83,7 +99,10 @@ export async function fetchRecords(filters, signal) {
       "Unable to load clinical records. Please try again."
     );
 
-    return Array.isArray(payload) ? payload : payload?.data || [];
+    return {
+      data: Array.isArray(payload) ? payload : payload?.data || [],
+      pagination: payload?.pagination || null,
+    };
   } catch (error) {
     const parsedError = parseApiError(
       error,
@@ -134,6 +153,65 @@ export async function createRecord(recordPayload) {
 
     if (parsedError === null) {
       throw new Error("Request was cancelled.");
+    }
+
+    throw parsedError;
+  }
+}
+
+export async function updateRecord(recordId, recordPayload) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/records/${recordId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(recordPayload),
+    });
+
+    return await parseJsonResponse(response, "Unable to update clinical record.");
+  } catch (error) {
+    const parsedError = parseApiError(error, "Unable to update clinical record.");
+
+    if (parsedError === null) {
+      throw new Error("Request was cancelled.");
+    }
+
+    throw parsedError;
+  }
+}
+
+export async function deleteRecord(recordId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/records/${recordId}`, {
+      method: "DELETE",
+    });
+
+    if (response.status === 204) {
+      return;
+    }
+
+    await parseJsonResponse(response, "Unable to delete clinical record.");
+  } catch (error) {
+    const parsedError = parseApiError(error, "Unable to delete clinical record.");
+
+    if (parsedError === null) {
+      throw new Error("Request was cancelled.");
+    }
+
+    throw parsedError;
+  }
+}
+
+export async function fetchRecordsStats(signal) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/records/stats`, { signal });
+    return await parseJsonResponse(response, "Unable to load records statistics.");
+  } catch (error) {
+    const parsedError = parseApiError(error, "Unable to load records statistics.");
+
+    if (parsedError === null) {
+      return null;
     }
 
     throw parsedError;

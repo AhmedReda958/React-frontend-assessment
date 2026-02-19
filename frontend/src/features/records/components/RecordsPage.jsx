@@ -2,15 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { RecordsCards } from "./RecordsCards";
 import { CreateRecordDialog } from "./CreateRecordDialog";
 import { RecordsFilters } from "./RecordsFilters";
+import { RecordsPagination } from "./RecordsPagination";
 import {
   RecordsEmptyState,
   RecordsErrorState,
   RecordsLoadingState,
   RecordsRefreshingHint,
 } from "./RecordsStates";
+import { RecordsStats } from "./RecordsStats";
 import { RecordsTable } from "./RecordsTable";
 import { useRecordsData } from "../hooks/useRecordsData";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { useRecordsStats } from "../hooks/useRecordsStats";
 import {
   createUrlSearchFromFilters,
   getDefaultFilters,
@@ -31,6 +34,7 @@ export function RecordsPage() {
   );
 
   const data = useRecordsData({ ...appliedFilters, retrySeed });
+  const statsData = useRecordsStats(retrySeed);
 
   useEffect(() => {
     const nextSearch = createUrlSearchFromFilters(appliedFilters);
@@ -58,16 +62,34 @@ export function RecordsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!data.pagination) {
+      return;
+    }
+
+    if (data.pagination.totalPages > 0 && filters.page > data.pagination.totalPages) {
+      setFilters((prevFilters) => ({
+        ...prevFilters,
+        page: data.pagination.totalPages,
+      }));
+    }
+  }, [data.pagination, filters.page]);
+
   const totalText = useMemo(() => {
-    const count = data.records.length;
+    const count = data.pagination?.total ?? data.records.length;
     return `${count} record${count === 1 ? "" : "s"} found`;
-  }, [data.records.length]);
+  }, [data.pagination?.total, data.records.length]);
 
   function handleFilterChange(field, value) {
-    setFilters((prevFilters) => ({
-      ...prevFilters,
-      [field]: value,
-    }));
+    setFilters((prevFilters) => {
+      const shouldResetPage = field !== "page";
+
+      return {
+        ...prevFilters,
+        [field]: value,
+        ...(shouldResetPage ? { page: 1 } : {}),
+      };
+    });
   }
 
   function handleResetFilters() {
@@ -80,6 +102,44 @@ export function RecordsPage() {
 
   function handleRecordCreated() {
     setRetrySeed((value) => value + 1);
+  }
+
+  function handleRecordUpdated() {
+    setRetrySeed((value) => value + 1);
+  }
+
+  function handleRecordDeleted() {
+    setRetrySeed((value) => value + 1);
+  }
+
+  function handleSortChange(field) {
+    setFilters((prevFilters) => {
+      const isCurrentField = prevFilters.sortBy === field;
+      const nextSortOrder =
+        isCurrentField && prevFilters.sortOrder === "asc" ? "desc" : "asc";
+
+      return {
+        ...prevFilters,
+        sortBy: field,
+        sortOrder: nextSortOrder,
+        page: 1,
+      };
+    });
+  }
+
+  function handlePageChange(nextPage) {
+    if (!data.pagination) {
+      return;
+    }
+
+    if (nextPage < 1 || nextPage > data.pagination.totalPages) {
+      return;
+    }
+
+    setFilters((prevFilters) => ({
+      ...prevFilters,
+      page: nextPage,
+    }));
   }
 
   return (
@@ -95,6 +155,12 @@ export function RecordsPage() {
           <CreateRecordDialog onRecordCreated={handleRecordCreated} />
         </div>
       </header>
+
+      <RecordsStats
+        stats={statsData.stats}
+        isLoading={statsData.isLoading}
+        error={statsData.error}
+      />
 
       <RecordsFilters
         filters={filters}
@@ -116,8 +182,20 @@ export function RecordsPage() {
       {!data.isLoading && !data.error && data.records.length > 0 ? (
         <section className="space-y-3">
           <p className="text-sm text-muted-foreground">{totalText}</p>
-          <RecordsTable records={data.records} />
-          <RecordsCards records={data.records} />
+          <RecordsTable
+            records={data.records}
+            sortBy={filters.sortBy}
+            sortOrder={filters.sortOrder}
+            onSortChange={handleSortChange}
+            onRecordUpdated={handleRecordUpdated}
+            onRecordDeleted={handleRecordDeleted}
+          />
+          <RecordsCards
+            records={data.records}
+            onRecordUpdated={handleRecordUpdated}
+            onRecordDeleted={handleRecordDeleted}
+          />
+          <RecordsPagination pagination={data.pagination} onPageChange={handlePageChange} />
         </section>
       ) : null}
     </main>

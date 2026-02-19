@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { formatDate } from "../utils/date";
+import { RecordActionsMenu } from "./RecordActionsMenu";
 import { StatusBadge } from "./StatusBadge";
 
 function RecordMetaItem({ label, value }) {
@@ -11,7 +12,7 @@ function RecordMetaItem({ label, value }) {
   );
 }
 
-export function RecordsCards({ records }) {
+export function RecordsCards({ records, onRecordUpdated, onRecordDeleted }) {
   return (
     <div className="grid gap-3 lg:hidden">
       {records.map((record) => (
@@ -29,6 +30,13 @@ export function RecordsCards({ records }) {
             <RecordMetaItem label="Admission" value={formatDate(record.admissionDate)} />
             <RecordMetaItem label="Discharge" value={formatDate(record.dischargeDate)} />
             <RecordMetaItem label="Department" value={record.department} />
+            <div className="flex justify-end pt-2">
+              <RecordActionsMenu
+                record={record}
+                onRecordUpdated={onRecordUpdated}
+                onRecordDeleted={onRecordDeleted}
+              />
+            </div>
           </CardContent>
         </Card>
       ))}

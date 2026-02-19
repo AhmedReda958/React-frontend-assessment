@@ -5,10 +5,24 @@ const DEFAULT_FILTERS = {
   search: "",
   status: "all",
   department: "all",
+  page: 1,
+  limit: 5,
+  sortBy: "id",
+  sortOrder: "asc",
 };
 
-export function useRecordsData({ search, status, department, retrySeed = 0 }) {
+export function useRecordsData({
+  search,
+  status,
+  department,
+  page,
+  limit,
+  sortBy,
+  sortOrder,
+  retrySeed = 0,
+}) {
   const [records, setRecords] = useState([]);
+  const [pagination, setPagination] = useState(null);
   const [departments, setDepartments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -21,9 +35,13 @@ export function useRecordsData({ search, status, department, retrySeed = 0 }) {
       search: search || DEFAULT_FILTERS.search,
       status: status || DEFAULT_FILTERS.status,
       department: department || DEFAULT_FILTERS.department,
+      page: page || DEFAULT_FILTERS.page,
+      limit: limit || DEFAULT_FILTERS.limit,
+      sortBy: sortBy || DEFAULT_FILTERS.sortBy,
+      sortOrder: sortOrder || DEFAULT_FILTERS.sortOrder,
       retrySeed,
     }),
-    [search, status, department, retrySeed]
+    [search, status, department, page, limit, sortBy, sortOrder, retrySeed]
   );
 
   useEffect(() => {
@@ -77,7 +95,8 @@ export function useRecordsData({ search, status, department, retrySeed = 0 }) {
           return;
         }
 
-        setRecords(recordsResult);
+        setRecords(recordsResult.data || []);
+        setPagination(recordsResult.pagination || null);
         hasLoadedRef.current = true;
       } catch (requestError) {
         if (!isMounted) {
@@ -105,6 +124,7 @@ export function useRecordsData({ search, status, department, retrySeed = 0 }) {
 
   return {
     records,
+    pagination,
     departments,
     isLoading,
     isRefreshing,

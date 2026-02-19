@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Plus } from "lucide-react";
-import { useState } from "react";
+import { Loader2, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useToast } from "../../../hooks/use-toast";
 import { Button } from "../../../components/ui/button";
@@ -29,31 +29,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
-import { createRecord } from "../api/recordsApi";
-import {
-  createRecordDefaultValues,
-  createRecordSchema,
-  STATUS_OPTIONS,
-} from "../schemas/createRecordSchema";
-import { mapFormValuesToRecordPayload } from "../utils/recordPayload";
+import { updateRecord } from "../api/recordsApi";
+import { createRecordSchema, STATUS_OPTIONS } from "../schemas/createRecordSchema";
+import { mapFormValuesToRecordPayload, mapRecordToFormValues } from "../utils/recordPayload";
 
-export function CreateRecordDialog({ onRecordCreated }) {
-  const [isOpen, setIsOpen] = useState(false);
+export function EditRecordDialog({
+  record,
+  onRecordUpdated,
+  trigger,
+  open,
+  onOpenChange,
+  hideTrigger = false,
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = typeof open === "boolean";
+  const isOpen = isControlled ? open : internalOpen;
+
+  function setIsOpen(nextOpen) {
+    if (!isControlled) {
+      setInternalOpen(nextOpen);
+    }
+
+    if (onOpenChange) {
+      onOpenChange(nextOpen);
+    }
+  }
+
   const { toast } = useToast();
   const form = useForm({
     resolver: zodResolver(createRecordSchema),
-    defaultValues: createRecordDefaultValues,
+    defaultValues: mapRecordToFormValues(record),
   });
+
+  useEffect(() => {
+    form.reset(mapRecordToFormValues(record));
+  }, [form, record]);
 
   async function handleSubmit(values) {
     try {
-      await createRecord(mapFormValuesToRecordPayload(values));
+      await updateRecord(record.id, mapFormValuesToRecordPayload(values));
       toast({
-        title: "Record created",
-        description: "Clinical record has been added successfully.",
+        title: "Record updated",
+        description: "Clinical record changes have been saved.",
       });
-      onRecordCreated();
-      form.reset(createRecordDefaultValues);
+      onRecordUpdated();
       setIsOpen(false);
     } catch (error) {
       if (error.status === 409) {
@@ -63,46 +82,30 @@ export function CreateRecordDialog({ onRecordCreated }) {
         });
       }
 
-      if (error.status === 400) {
-        form.setError("root", {
-          type: "server",
-          message: error.message || "Please review the form values and try again.",
-        });
-      }
-
       toast({
-        title: "Unable to create record",
+        title: "Unable to update record",
         description: error.message || "Please try again.",
         variant: "destructive",
       });
     }
   }
 
-  function handleOpenChange(nextOpen) {
-    setIsOpen(nextOpen);
-
-    if (!nextOpen) {
-      form.reset(createRecordDefaultValues);
-    }
-  }
-
-  const isSubmitting = form.formState.isSubmitting;
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-1 size-4" />
-          Add Record
-        </Button>
-      </DialogTrigger>
-
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      {!hideTrigger ? (
+        <DialogTrigger asChild>
+          {trigger || (
+            <Button type="button" size="sm" variant="outline">
+              <Pencil className="mr-1 size-4" />
+              Edit
+            </Button>
+          )}
+        </DialogTrigger>
+      ) : null}
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create Clinical Record</DialogTitle>
-          <DialogDescription>
-            Fill in the patient details below. Discharge date is optional.
-          </DialogDescription>
+          <DialogTitle>Edit Clinical Record</DialogTitle>
+          <DialogDescription>Update patient details and save your changes.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
@@ -120,7 +123,6 @@ export function CreateRecordDialog({ onRecordCreated }) {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="patientName"
@@ -128,13 +130,12 @@ export function CreateRecordDialog({ onRecordCreated }) {
                 <FormItem>
                   <FormLabel>Patient Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Alice Johnson" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="dateOfBirth"
@@ -148,7 +149,6 @@ export function CreateRecordDialog({ onRecordCreated }) {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="diagnosis"
@@ -156,13 +156,12 @@ export function CreateRecordDialog({ onRecordCreated }) {
                 <FormItem>
                   <FormLabel>Diagnosis</FormLabel>
                   <FormControl>
-                    <Input placeholder="Fever" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="admissionDate"
@@ -176,7 +175,6 @@ export function CreateRecordDialog({ onRecordCreated }) {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="dischargeDate"
@@ -190,7 +188,6 @@ export function CreateRecordDialog({ onRecordCreated }) {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="status"
@@ -200,7 +197,7 @@ export function CreateRecordDialog({ onRecordCreated }) {
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -215,7 +212,6 @@ export function CreateRecordDialog({ onRecordCreated }) {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="department"
@@ -223,7 +219,7 @@ export function CreateRecordDialog({ onRecordCreated }) {
                 <FormItem>
                   <FormLabel>Department</FormLabel>
                   <FormControl>
-                    <Input placeholder="General Medicine" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -231,17 +227,14 @@ export function CreateRecordDialog({ onRecordCreated }) {
             />
 
             <DialogFooter className="col-span-full">
-              {form.formState.errors.root?.message ? (
-                <p className="mb-2 text-sm text-destructive sm:mb-0 sm:mr-auto">
-                  {form.formState.errors.root.message}
-                </p>
-              ) : null}
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 size-4 animate-spin" /> : null}
-                {isSubmitting ? "Creating..." : "Create Record"}
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : null}
+                Save Changes
               </Button>
             </DialogFooter>
           </form>

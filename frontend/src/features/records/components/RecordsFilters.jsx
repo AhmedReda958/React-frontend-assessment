@@ -9,9 +9,16 @@ import {
   SelectValue,
 } from "../../../components/ui/select";
 
+const SORT_FIELDS = [
+  { value: "id", label: "Newest" },
+  { value: "patientName", label: "Patient Name" },
+  { value: "admissionDate", label: "Admission Date" },
+  { value: "department", label: "Department" },
+];
+
 export function RecordsFilters({ filters, departments, onFilterChange, onReset }) {
   return (
-    <div className="grid gap-3 rounded-lg border bg-card p-4 md:grid-cols-4 md:items-end">
+    <div className="grid gap-3 rounded-lg border bg-card p-4 md:grid-cols-5 md:items-end">
       <div className="md:col-span-2">
         <label htmlFor="search" className="mb-1 block text-sm font-medium">
           Search
@@ -38,6 +45,8 @@ export function RecordsFilters({ filters, departments, onFilterChange, onReset }
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="Active">Active</SelectItem>
             <SelectItem value="Discharged">Discharged</SelectItem>
+            <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -62,7 +71,39 @@ export function RecordsFilters({ filters, departments, onFilterChange, onReset }
         </Select>
       </div>
 
-      <div className="md:col-span-4">
+      <div>
+        <label className="mb-1 block text-sm font-medium">Sort By</label>
+        <Select value={filters.sortBy} onValueChange={(value) => onFilterChange("sortBy", value)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_FIELDS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">Order</label>
+        <Select
+          value={filters.sortOrder}
+          onValueChange={(value) => onFilterChange("sortOrder", value)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asc">Ascending</SelectItem>
+            <SelectItem value="desc">Descending</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="md:col-span-5">
         <Button variant="outline" onClick={onReset}>
           Reset Filters
         </Button>
