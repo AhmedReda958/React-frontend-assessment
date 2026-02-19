@@ -1,5 +1,11 @@
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3001/api";
 
+function createAppError(message, status) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
 function buildQueryString(filters) {
   const params = new URLSearchParams();
 
@@ -18,12 +24,34 @@ function buildQueryString(filters) {
   return params.toString();
 }
 
+function getHttpErrorMessage(status, fallbackMessage) {
+  const statusMessages = {
+    400: "The request is invalid. Please check your inputs and try again.",
+    404: "Requested resource was not found.",
+    409: "A conflicting record already exists.",
+    500: "Server error occurred. Please try again in a moment.",
+  };
+
+  return statusMessages[status] || fallbackMessage;
+}
+
 function parseApiError(error, fallbackMessage) {
   if (error.name === "AbortError") {
     return null;
   }
 
-  return error.message || fallbackMessage;
+  if (typeof error.status === "number") {
+    const message = error.message || getHttpErrorMessage(error.status, fallbackMessage);
+    return createAppError(message, error.status);
+  }
+
+  if (error instanceof TypeError) {
+    return createAppError(
+      "Network connection issue. Please confirm the backend is running and try again."
+    );
+  }
+
+  return createAppError(error.message || fallbackMessage);
 }
 
 async function parseJsonResponse(response, fallbackMessage) {
@@ -36,8 +64,8 @@ async function parseJsonResponse(response, fallbackMessage) {
   }
 
   if (!response.ok) {
-    const message = payload?.error || fallbackMessage;
-    throw new Error(message);
+    const message = payload?.error || getHttpErrorMessage(response.status, fallbackMessage);
+    throw createAppError(message, response.status);
   }
 
   return payload;
@@ -66,7 +94,7 @@ export async function fetchRecords(filters, signal) {
       return null;
     }
 
-    throw new Error(parsedError);
+    throw parsedError;
   }
 }
 
@@ -86,7 +114,7 @@ export async function fetchDepartments(signal) {
       return null;
     }
 
-    throw new Error(parsedError);
+    throw parsedError;
   }
 }
 
@@ -108,6 +136,6 @@ export async function createRecord(recordPayload) {
       throw new Error("Request was cancelled.");
     }
 
-    throw new Error(parsedError);
+    throw parsedError;
   }
 }

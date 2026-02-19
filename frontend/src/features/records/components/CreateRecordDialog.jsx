@@ -66,6 +66,20 @@ export function CreateRecordDialog({ onRecordCreated }) {
       form.reset(createRecordDefaultValues);
       setIsOpen(false);
     } catch (error) {
+      if (error.status === 409) {
+        form.setError("patientId", {
+          type: "server",
+          message: "Patient ID already exists. Please use a unique value.",
+        });
+      }
+
+      if (error.status === 400) {
+        form.setError("root", {
+          type: "server",
+          message: error.message || "Please review the form values and try again.",
+        });
+      }
+
       toast({
         title: "Unable to create record",
         description: error.message || "Please try again.",
@@ -227,6 +241,11 @@ export function CreateRecordDialog({ onRecordCreated }) {
             />
 
             <DialogFooter className="col-span-full">
+              {form.formState.errors.root?.message ? (
+                <p className="mb-2 text-sm text-destructive sm:mb-0 sm:mr-auto">
+                  {form.formState.errors.root.message}
+                </p>
+              ) : null}
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
