@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RecordsCards } from "./RecordsCards";
 import { RecordsFilters } from "./RecordsFilters";
 import {
@@ -9,17 +9,42 @@ import {
 } from "./RecordsStates";
 import { RecordsTable } from "./RecordsTable";
 import { useRecordsData } from "../hooks/useRecordsData";
-
-const INITIAL_FILTERS = {
-  search: "",
-  status: "all",
-  department: "all",
-};
+import {
+  createUrlSearchFromFilters,
+  getDefaultFilters,
+  readFiltersFromUrl,
+} from "../utils/urlFilters";
 
 export function RecordsPage() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const [filters, setFilters] = useState(() => readFiltersFromUrl(window.location.search));
   const [retrySeed, setRetrySeed] = useState(0);
   const data = useRecordsData({ ...filters, retrySeed });
+
+  useEffect(() => {
+    const nextSearch = createUrlSearchFromFilters(filters);
+    const currentSearch = window.location.search.replace("?", "");
+
+    if (nextSearch === currentSearch) {
+      return;
+    }
+
+    const nextUrl = `${window.location.pathname}${
+      nextSearch ? `?${nextSearch}` : ""
+    }${window.location.hash}`;
+    window.history.replaceState(null, "", nextUrl);
+  }, [filters]);
+
+  useEffect(() => {
+    function handlePopState() {
+      setFilters(readFiltersFromUrl(window.location.search));
+    }
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
   const totalText = useMemo(() => {
     const count = data.records.length;
@@ -34,7 +59,7 @@ export function RecordsPage() {
   }
 
   function handleResetFilters() {
-    setFilters(INITIAL_FILTERS);
+    setFilters(getDefaultFilters());
   }
 
   function handleRetry() {
